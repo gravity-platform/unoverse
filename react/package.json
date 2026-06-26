@@ -1,0 +1,37 @@
+{
+  "name": "@gravity-platform/unoverse-react",
+  "version": "0.0.1",
+  "description": "Unoverse React renderer — neutral definition → React/DOM (web channel SDK)",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@gravity-platform/unoverse-core": "^0.0.1"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

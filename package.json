@@ -1,0 +1,15 @@
+{
+  "name": "unoverse",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Unoverse JS channel SDKs — @gravity-platform/unoverse-core + @gravity-platform/unoverse-react. Native SDKs (flutter/swift/kotlin) live in their own repos under the gravity-platform org.",
+  "workspaces": ["core", "react"],
+  "scripts": {
+    "build": "npm run build -w @gravity-platform/unoverse-core && npm run build -w @gravity-platform/unoverse-react",
+    "dev": "npm run dev -w @gravity-platform/unoverse-core & npm run dev -w @gravity-platform/unoverse-react"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}
