@@ -194,9 +194,15 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   // Isolated → theme.root on the shadow-root container (reliable cascade); else → display:contents.
   const keyframes = <style>{keyframesCss(theme)}</style>;
   const tree = renderNode(def.root, rootData, onAction, theme, undefined, resolve);
+  // A template is a SURFACE: its render-root fills the box the host gives it, so a root
+  // that declares `height: "full"` (DATA) can resolve. This only fills when the host's box
+  // is definite-height; when the host sizes to content the 100% resolves to content — so a
+  // content-sized app (fluidHeight:false) still wraps its component. The SDK adds no layout
+  // policy beyond "a template fills its container"; the template DATA owns everything else.
+  const surfaceRoot = { ...(theme.root as CSSProperties), height: "100%" };
   if (isolate) {
     return (
-      <IsolatedRoot rootStyle={theme.root as CSSProperties}>
+      <IsolatedRoot rootStyle={surfaceRoot}>
         {keyframes}
         {tree}
       </IsolatedRoot>
@@ -205,7 +211,7 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   return (
     <>
       {keyframes}
-      <div style={{ display: "contents", ...(theme.root as CSSProperties) }}>{tree}</div>
+      <div style={{ display: "contents", ...surfaceRoot }}>{tree}</div>
     </>
   );
 }

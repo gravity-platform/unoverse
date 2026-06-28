@@ -173,6 +173,11 @@ export function useUnoverseConnection(
       const message = text.trim();
       if (!message) return;
       store.addUserMessage(chatId, message); // optimistic user turn
+      // Optimistically open the assistant turn too, so the avatar + thinking dots
+      // appear IMMEDIATELY on send instead of waiting for the backend's
+      // WORKFLOW_STARTED. startResponse is idempotent — the later WORKFLOW_STARTED
+      // (and the first COMPONENT_INIT) reuse this same turn (responseFor by chatId).
+      store.startResponse(chatId);
       trigger({ message });
     },
     [chatId, store, trigger],
