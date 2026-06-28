@@ -191,13 +191,21 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   // The wrapper applies the SERVED base render settings (theme.root — font-smoothing, etc.):
   // `display: contents` keeps it out of layout while its inherited props cascade to the tree.
   // The SDK authors only `display: contents` (structure); every value comes from theme.root.
-  const body = (
+  // Isolated → theme.root on the shadow-root container (reliable cascade); else → display:contents.
+  const keyframes = <style>{keyframesCss(theme)}</style>;
+  const tree = renderNode(def.root, rootData, onAction, theme, undefined, resolve);
+  if (isolate) {
+    return (
+      <IsolatedRoot rootStyle={theme.root as CSSProperties}>
+        {keyframes}
+        {tree}
+      </IsolatedRoot>
+    );
+  }
+  return (
     <>
-      <style>{keyframesCss(theme)}</style>
-      <div style={{ display: "contents", ...(theme.root as CSSProperties) }}>
-        {renderNode(def.root, rootData, onAction, theme, undefined, resolve)}
-      </div>
+      {keyframes}
+      <div style={{ display: "contents", ...(theme.root as CSSProperties) }}>{tree}</div>
     </>
   );
-  return isolate ? <IsolatedRoot>{body}</IsolatedRoot> : body;
 }

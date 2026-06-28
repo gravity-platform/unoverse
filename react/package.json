@@ -1,6 +1,6 @@
 {
   "name": "@gravity-platform/unoverse-react",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Unoverse React renderer \u2014 neutral definition \u2192 React/DOM (web channel SDK)",
   "license": "MIT",
   "type": "module",

@@ -15,7 +15,7 @@
  * concrete styles work unchanged inside the shadow root; only inherited typography needs the
  * reset below, after which the served `theme.root` is the sole typographic baseline.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 // Shadow DOM blocks style SELECTORS but NOT inheritance: inherited properties (font, colour,
@@ -32,7 +32,7 @@ const RESET_CSS = `
   }
 `;
 
-export function IsolatedRoot({ children }: { children: ReactNode }) {
+export function IsolatedRoot({ children, rootStyle }: { children: ReactNode; rootStyle?: CSSProperties }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [shadow, setShadow] = useState<ShadowRoot | null>(null);
 
@@ -49,7 +49,14 @@ export function IsolatedRoot({ children }: { children: ReactNode }) {
         createPortal(
           <>
             <style>{RESET_CSS}</style>
-            <div className="uno-isolate-root">{children}</div>
+            {/* Apply the served DS render-root (theme.root: font family/size/weight/line-height/
+                colour + smoothing) DIRECTLY to this REAL container — not a `display:contents`
+                wrapper, whose inherited-font cascade is unreliable inside a shadow root. This is
+                the Unoverse equivalent of the legacy `.gravity-component` baseline, so every node
+                in the tree inherits the design-system typography. */}
+            <div className="uno-isolate-root" style={rootStyle}>
+              {children}
+            </div>
           </>,
           shadow as unknown as Element,
         )}

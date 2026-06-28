@@ -62,17 +62,25 @@ export function UnoverseComponent({ client, uri, data, onAction, theme, isolate 
     Object.entries((def.props ?? {}) as Record<string, { default?: unknown }>).map(([k, v]) => [k, v?.default]),
   );
   const merged = { ...propDefaults, ...(data ?? {}) };
-  // Apply the SERVED base render-root settings (theme.root — DS typography + font-smoothing)
-  // and inject the served keyframes, the SAME as the template path. `display: contents`
-  // keeps this wrapper out of layout while its inherited props (font/colour) cascade to the
-  // tree — so a standalone component gets the design-system baseline, not the page's default.
-  const body = (
+  // Inject the served keyframes + apply the SERVED base render-root (theme.root — DS typography
+  // + font-smoothing). When ISOLATED, theme.root is applied to the shadow-root container inside
+  // IsolatedRoot (a REAL box — reliable font cascade in the shadow tree). When NOT isolated the
+  // host owns isolation, so apply it here on a `display:contents` wrapper (out of layout while
+  // its inherited props cascade) — the design-system baseline either way.
+  const keyframes = <style>{keyframesCss(activeTheme)}</style>;
+  const tree = renderNode(def.root, merged, onAction, activeTheme);
+  if (isolate) {
+    return (
+      <IsolatedRoot rootStyle={activeTheme.root as CSSProperties}>
+        {keyframes}
+        {tree}
+      </IsolatedRoot>
+    );
+  }
+  return (
     <>
-      <style>{keyframesCss(activeTheme)}</style>
-      <div style={{ display: "contents", ...(activeTheme.root as CSSProperties) }}>
-        {renderNode(def.root, merged, onAction, activeTheme)}
-      </div>
+      {keyframes}
+      <div style={{ display: "contents", ...(activeTheme.root as CSSProperties) }}>{tree}</div>
     </>
   );
-  return isolate ? <IsolatedRoot>{body}</IsolatedRoot> : body;
 }
