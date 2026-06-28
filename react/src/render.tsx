@@ -67,7 +67,10 @@ export function renderNode(
     const vw = node.visibleWhen;
     if (typeof vw === "string") {
       const v = data[vw];
-      if (v == null || v === "" || v === false) return null;
+      // A bare-name visibleWhen is a "has data" test → hide on empty/absent. An EMPTY
+      // ARRAY counts as no data: an Each-driven section (e.g. AIResponse's `questions`)
+      // disappears entirely when its list is `[]`, instead of rendering an empty gap.
+      if (v == null || v === "" || v === false || (Array.isArray(v) && v.length === 0)) return null;
     } else {
       const v = data[vw.field];
       if ("eq" in vw) {
