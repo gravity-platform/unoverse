@@ -6,6 +6,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { ResolvedTheme, UnoverseClient, UnoverseDefinition } from "@gravity-platform/unoverse-core";
 import { renderNode, keyframesCss, type ActionHandler } from "./render";
 import { useUnoverseTheme } from "./theme";
+import { IsolatedRoot } from "./isolate";
 
 export interface UnoverseComponentProps {
   client: UnoverseClient;
@@ -20,9 +21,15 @@ export interface UnoverseComponentProps {
    * (e.g. the workbench's light/dark toggle); swap it to restyle, zero def changes.
    */
   theme?: ResolvedTheme;
+  /**
+   * Render inside a Shadow DOM for full CSS isolation (default true). The SDK owns the
+   * isolation boundary so every consumer is protected identically; the canvas/channel no
+   * longer wrap it themselves. Set false only for a host that manages its own isolation.
+   */
+  isolate?: boolean;
 }
 
-export function UnoverseComponent({ client, uri, data, onAction, theme }: UnoverseComponentProps) {
+export function UnoverseComponent({ client, uri, data, onAction, theme, isolate = true }: UnoverseComponentProps) {
   const [def, setDef] = useState<UnoverseDefinition | null>(null);
   const [error, setError] = useState<string | null>(null);
   // No theme passed → fetch it from the server (the SDK owns zero token values).
@@ -57,7 +64,7 @@ export function UnoverseComponent({ client, uri, data, onAction, theme }: Unover
   // and inject the served keyframes, the SAME as the template path. `display: contents`
   // keeps this wrapper out of layout while its inherited props (font/colour) cascade to the
   // tree — so a standalone component gets the design-system baseline, not the page's default.
-  return (
+  const body = (
     <>
       <style>{keyframesCss(activeTheme)}</style>
       <div style={{ display: "contents", ...(activeTheme.root as CSSProperties) }}>
@@ -65,4 +72,5 @@ export function UnoverseComponent({ client, uri, data, onAction, theme }: Unover
       </div>
     </>
   );
+  return isolate ? <IsolatedRoot>{body}</IsolatedRoot> : body;
 }

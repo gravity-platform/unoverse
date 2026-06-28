@@ -17,6 +17,7 @@ import type { ComponentStore, ResolvedTheme, UnoverseClient, UnoverseDefinition,
 import { renderNode, styleToCss, keyframesCss, type ActionHandler, type SlotResolver } from "./render";
 import { StreamedUnoverseComponent } from "./streamed";
 import { useUnoverseTheme } from "./theme";
+import { IsolatedRoot } from "./isolate";
 
 export interface StreamedUnoverseTemplateProps {
   client: UnoverseClient;
@@ -28,6 +29,8 @@ export interface StreamedUnoverseTemplateProps {
   /** Channel overrides for the template's declared props (e.g. per-tenant logoUrl/brandName).
    *  Merged OVER the definition's own `props` defaults into the root data scope. */
   props?: Record<string, unknown>;
+  /** Render inside a Shadow DOM for full CSS isolation (default true). See UnoverseComponent. */
+  isolate?: boolean;
 }
 
 /** The author's declared prop defaults (def.props[k].default) → a flat data object. Content, not policy. */
@@ -72,7 +75,7 @@ export function selectPointers(store: ComponentStore, node: UnoverseNode): strin
   return pointers;
 }
 
-export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: themeProp, props }: StreamedUnoverseTemplateProps) {
+export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: themeProp, props, isolate = true }: StreamedUnoverseTemplateProps) {
   const [def, setDef] = useState<UnoverseDefinition | null>(null);
   const [error, setError] = useState<string | null>(null);
   // No theme passed → fetch from the server (the SDK owns zero token values).
@@ -188,7 +191,7 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   // The wrapper applies the SERVED base render settings (theme.root — font-smoothing, etc.):
   // `display: contents` keeps it out of layout while its inherited props cascade to the tree.
   // The SDK authors only `display: contents` (structure); every value comes from theme.root.
-  return (
+  const body = (
     <>
       <style>{keyframesCss(theme)}</style>
       <div style={{ display: "contents", ...(theme.root as CSSProperties) }}>
@@ -196,4 +199,5 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
       </div>
     </>
   );
+  return isolate ? <IsolatedRoot>{body}</IsolatedRoot> : body;
 }
