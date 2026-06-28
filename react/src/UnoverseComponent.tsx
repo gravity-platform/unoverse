@@ -52,17 +52,16 @@ export function UnoverseComponent({ client, uri, data, onAction, theme, isolate 
   // Loading/error hints carry NO styling — the SDK owns zero styles (tokens or hints).
   if (error) return <div>Unoverse error: {error}</div>;
   if (!def || !activeTheme) return <div>Loading {uri}…</div>;
-  // A PROVIDED instance renders its OWN data; the definition's prop defaults are only the
-  // standalone-preview baseline (the workbench Components tab, where no `data` is passed).
-  // Do NOT merge per-prop defaults over instance data: a def `default` doubles as a demo
-  // PLACEHOLDER (e.g. AIResponse's `text` = a markdown demo), so filling an absent/empty
-  // streamed prop with it MASKS the live value — an empty streamed `text` would render the
-  // placeholder instead of staying empty until the stream fills it. So: data → as-is;
-  // no data → the def's preview defaults.
+  // Fill props the instance didn't provide from the definition's defaults; instance `data`
+  // overrides. This is what lets a partially-emitted component still render its declared
+  // baseline — e.g. AIResponse's `progressText` default ("Thinking…") shows while the node
+  // streams and hasn't emitted a progress line. IMPORTANT: a def `default` must therefore be
+  // a sensible RUNTIME fallback, NOT a demo placeholder — a demo-y default (e.g. a markdown
+  // showcase on `text`) would mask an empty stream. Keep demo content out of prop defaults.
   const propDefaults = Object.fromEntries(
     Object.entries((def.props ?? {}) as Record<string, { default?: unknown }>).map(([k, v]) => [k, v?.default]),
   );
-  const merged = data ?? propDefaults;
+  const merged = { ...propDefaults, ...(data ?? {}) };
   // Apply the SERVED base render-root settings (theme.root — DS typography + font-smoothing)
   // and inject the served keyframes, the SAME as the template path. `display: contents`
   // keeps this wrapper out of layout while its inherited props (font/colour) cascade to the
