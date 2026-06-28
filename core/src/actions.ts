@@ -48,6 +48,13 @@ export function dispatchAction(
     for (const { key, value } of spec.values ?? []) patch[key] = resolveValue(value, scope);
     // LOCAL — the same merge inbound COMPONENT_DATA uses. No server round-trip.
     ctx.store.apply({ type: "COMPONENT_DATA", chatId: ctx.chatId, nodeId: ctx.nodeId, data: patch });
+  } else if (spec.type === "openFocus") {
+    // LOCAL — enter Focus Mode for THIS component: the store records it as focused and
+    // flips its `displayState` to "focused" (the def gates inline/focused on that field).
+    ctx.store.openFocus(ctx.chatId, ctx.nodeId);
+  } else if (spec.type === "closeFocus") {
+    // LOCAL — exit Focus Mode: collapse the focused component back to "inline".
+    ctx.store.closeFocus();
   } else if (spec.type === "input") {
     // A controlled Input changed — write its bound field into THIS slice (local two-way
     // binding). The typing-buffer twin of the composer's `setDraft`: every keystroke is

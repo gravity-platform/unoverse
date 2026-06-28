@@ -52,14 +52,17 @@ export function UnoverseComponent({ client, uri, data, onAction, theme, isolate 
   // Loading/error hints carry NO styling — the SDK owns zero styles (tokens or hints).
   if (error) return <div>Unoverse error: {error}</div>;
   if (!def || !activeTheme) return <div>Loading {uri}…</div>;
-  // The definition's prop DEFAULTS are the static baseline (e.g. an option list declared
-  // as a prop default); the instance `data` (streamed props) OVERRIDES them. So a component
-  // renders its declared defaults even when the node only emits the dynamic props — without
-  // this, any prop the node didn't set resolves to `undefined` (an empty `Each`, blank text…).
+  // A PROVIDED instance renders its OWN data; the definition's prop defaults are only the
+  // standalone-preview baseline (the workbench Components tab, where no `data` is passed).
+  // Do NOT merge per-prop defaults over instance data: a def `default` doubles as a demo
+  // PLACEHOLDER (e.g. AIResponse's `text` = a markdown demo), so filling an absent/empty
+  // streamed prop with it MASKS the live value — an empty streamed `text` would render the
+  // placeholder instead of staying empty until the stream fills it. So: data → as-is;
+  // no data → the def's preview defaults.
   const propDefaults = Object.fromEntries(
     Object.entries((def.props ?? {}) as Record<string, { default?: unknown }>).map(([k, v]) => [k, v?.default]),
   );
-  const merged = { ...propDefaults, ...(data ?? {}) };
+  const merged = data ?? propDefaults;
   // Apply the SERVED base render-root settings (theme.root — DS typography + font-smoothing)
   // and inject the served keyframes, the SAME as the template path. `display: contents`
   // keeps this wrapper out of layout while its inherited props (font/colour) cascade to the

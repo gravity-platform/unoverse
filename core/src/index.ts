@@ -333,6 +333,35 @@ export class ComponentStore {
     this.bump();
   }
 
+  // --- focus plane (Focus Mode): which component is the active interaction surface ---
+  private focus: { chatId: string; nodeId: string } | null = null;
+
+  /** The currently focused component pointer (Focus Mode), or null. */
+  getFocus(): { chatId: string; nodeId: string } | null {
+    return this.focus;
+  }
+  /**
+   * Enter Focus Mode for a component: record it as focused AND flip its `displayState`
+   * to "focused" via a local COMPONENT_DATA merge — the def gates its inline/focused
+   * views on that field, so the component owns both looks (zero per-component code). A
+   * previously-focused component collapses back to "inline". A template reads getFocus()
+   * to render the focus container; the connection routes focused messages to this node.
+   */
+  openFocus(chatId: string, nodeId: string): void {
+    if (this.focus && (this.focus.chatId !== chatId || this.focus.nodeId !== nodeId)) {
+      this.merge(`${this.focus.chatId}:${this.focus.nodeId}`, { displayState: "inline" });
+    }
+    this.focus = { chatId, nodeId };
+    this.merge(`${chatId}:${nodeId}`, { displayState: "focused" }); // bumps
+  }
+  /** Exit Focus Mode: collapse the focused component back to "inline" and clear focus. */
+  closeFocus(): void {
+    if (!this.focus) return;
+    const { chatId, nodeId } = this.focus;
+    this.focus = null;
+    this.merge(`${chatId}:${nodeId}`, { displayState: "inline" }); // bumps (reflects focus=null too)
+  }
+
   /** Apply a streamed event (COMPONENT_INIT or COMPONENT_DATA). */
   apply(event: UnoverseEvent): void {
     const key = `${event.chatId}:${event.nodeId}`;
