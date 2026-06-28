@@ -1,7 +1,7 @@
 {
   "name": "@gravity-platform/unoverse-react",
-  "version": "0.0.1",
-  "description": "Unoverse React renderer — neutral definition → React/DOM (web channel SDK)",
+  "version": "0.0.2",
+  "description": "Unoverse React renderer \u2014 neutral definition \u2192 React/DOM (web channel SDK)",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.cjs",
@@ -14,13 +14,18 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch"
+    "build": "node --test test/golden-rule.test.mjs test/dispatcher-only.test.mjs test/closed-set.test.mjs test/style-keys.test.mjs && tsup",
+    "dev": "tsup --watch",
+    "test": "tsup && node --test",
+    "prepublishOnly": "node --test test/golden-rule.test.mjs test/dispatcher-only.test.mjs test/closed-set.test.mjs test/style-keys.test.mjs"
   },
   "dependencies": {
-    "@gravity-platform/unoverse-core": "^0.0.1"
+    "@gravity-platform/unoverse-core": "^0.0.2",
+    "markdown-to-jsx": "^7.7.17"
   },
   "peerDependencies": {
     "react": ">=18"

@@ -2,8 +2,8 @@
  * Streaming binding: subscribe to the merge-state store and render the
  * component instance, re-rendering when COMPONENT_INIT/COMPONENT_DATA merge in.
  */
-import { useCallback, useSyncExternalStore } from "react";
-import type { ComponentStore, UnoverseClient } from "@gravity-platform/unoverse-core";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { dispatchAction, type ComponentStore, type ResolvedTheme, type UnoverseClient } from "@gravity-platform/unoverse-core";
 import { UnoverseComponent } from "./UnoverseComponent";
 import type { ActionHandler } from "./render";
 
@@ -21,11 +21,29 @@ export interface StreamedUnoverseComponentProps {
   chatId: string;
   nodeId: string;
   onAction?: ActionHandler;
+  theme?: ResolvedTheme;
+  /** Neutral turn state merged into the component's data scope (e.g. `streaming`), so a
+   *  component can reflect it — like legacy passing `streamingState` to AIResponse. */
+  extraData?: Record<string, unknown>;
 }
 
 /** Resolves `type` from the store → its definition → renders with merged data. */
-export function StreamedUnoverseComponent({ client, store, chatId, nodeId, onAction }: StreamedUnoverseComponentProps) {
+export function StreamedUnoverseComponent({ client, store, chatId, nodeId, onAction, theme, extraData }: StreamedUnoverseComponentProps) {
   const { type, data } = useUnoverseInstance(store, chatId, nodeId);
-  if (!type) return <div style={{ color: "#9ca3af", fontSize: 13 }}>waiting for COMPONENT_INIT…</div>;
-  return <UnoverseComponent client={client} uri={`unoverse://components/${type}`} data={data} onAction={onAction} />;
+  // Interpret the action envelope (§2e-3): `setValue` writes THIS instance's slice
+  // locally (the ported `updateData`); any other type routes to the channel handler
+  // (the workflow). `then` chains. The component never sees the store directly.
+  const handleAction = useMemo<ActionHandler>(
+    () => (action, scope) =>
+      dispatchAction(action, scope, {
+        store,
+        chatId,
+        nodeId,
+        sendToServer: onAction ? (t, payload) => onAction(t, payload) : undefined,
+      }),
+    [store, chatId, nodeId, onAction],
+  );
+  if (!type) return <div>waiting for COMPONENT_INIT…</div>;
+  const merged = extraData ? { ...data, ...extraData } : data;
+  return <UnoverseComponent client={client} uri={`unoverse://components/${type}`} data={merged} onAction={handleAction} theme={theme} />;
 }

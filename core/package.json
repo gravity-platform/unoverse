@@ -1,6 +1,6 @@
 {
   "name": "@gravity-platform/unoverse-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Unoverse core SDK — framework-agnostic MCP client + merge-state store (the channel brain)",
   "license": "MIT",
   "type": "module",
@@ -14,10 +14,13 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "tsup && node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1"
