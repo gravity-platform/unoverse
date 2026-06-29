@@ -9,7 +9,8 @@
  * `{{binding}}` resolution, an optional chained `then`, and a hard split between
  * LOCAL `setValue` and a server route for anything computed/transactional.
  */
-import type { ComponentStore, ActionSpec } from "./index";
+import type { ComponentStore } from "./store";
+import type { ActionSpec } from "./types";
 
 export interface ActionContext {
   store: ComponentStore;
@@ -44,17 +45,20 @@ export function dispatchAction(
   const spec: ActionSpec = typeof action === "string" ? { type: action } : action;
 
   if (spec.type === "setValue") {
+    // Write the dev's chosen keys into THIS COMPONENT's OWN slice (chatId:nodeId) — its own
+    // view state: tab / edit / wizard-step / displayState / anything. Read back via
+    // `visibleWhen`. Same merge inbound COMPONENT_DATA uses; no server round-trip.
     const patch: Record<string, unknown> = {};
     for (const { key, value } of spec.values ?? []) patch[key] = resolveValue(value, scope);
-    // LOCAL — the same merge inbound COMPONENT_DATA uses. No server round-trip.
     ctx.store.apply({ type: "COMPONENT_DATA", chatId: ctx.chatId, nodeId: ctx.nodeId, data: patch });
-  } else if (spec.type === "openFocus") {
-    // LOCAL — enter Focus Mode for THIS component: the store records it as focused and
-    // flips its `displayState` to "focused" (the def gates inline/focused on that field).
-    ctx.store.openFocus(ctx.chatId, ctx.nodeId);
-  } else if (spec.type === "closeFocus") {
-    // LOCAL — exit Focus Mode: collapse the focused component back to "inline".
-    ctx.store.closeFocus();
+  } else if (spec.type === "setTemplateValue") {
+    // Write the dev's chosen keys into TEMPLATE state — the template-state twin of setValue.
+    // No component scope. The dev builds disclosure / focus / etc. from a key THEY name
+    // (openPanel, focusMode, …) and reads it via `visibleWhen`. The SDK hardcodes NO UI
+    // concept — only "write a key to component state" and "write a key to template state".
+    const patch: Record<string, unknown> = {};
+    for (const { key, value } of spec.values ?? []) patch[key] = resolveValue(value, scope);
+    ctx.store.mergeTemplateState(patch);
   } else if (spec.type === "input") {
     // A controlled Input changed — write its bound field into THIS slice (local two-way
     // binding). The typing-buffer twin of the composer's `setDraft`: every keystroke is

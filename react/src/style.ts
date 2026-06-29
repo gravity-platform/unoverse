@@ -41,6 +41,10 @@ export function styleToCss(s: Record<string, unknown> = {}, theme: ResolvedTheme
     css.display = "flex";
     css.flexDirection = s.direction as CSSProperties["flexDirection"];
   }
+  // `wrap` — flex-wrap, so a row of content-width items (e.g. FAQ chips, tag pills) sits
+  // side-by-side when there's room and wraps to the next line when there isn't. Generic
+  // layout vocab (any wrapping flex container); the value ("wrap"/"nowrap") is served/literal.
+  if (s.wrap) css.flexWrap = s.wrap as CSSProperties["flexWrap"];
   if (s.gap) css.gap = space(s.gap as string);
   if (s.padding) css.padding = Array.isArray(s.padding) ? (s.padding as string[]).map(space).join(" ") : space(s.padding as string);
   if (s.margin) css.margin = Array.isArray(s.margin) ? (s.margin as string[]).map(space).join(" ") : space(s.margin as string);

@@ -105,16 +105,34 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   if (error) return <div>Unoverse error: {error}</div>;
   if (!def || !theme) return <div>Loading {uri}…</div>;
 
+  // Universal action routing: store-global interaction actions (the named state machines —
+  // panels, focus) are handled IN the SDK so every template drives them with the same vocab,
+  // no per-channel glue. Everything else (sendMessage, input) bubbles to the channel.
+  const dispatch: ActionHandler = (action, data) => {
+    const t = typeof action === "string" ? action : action?.type;
+    // Template-chrome writes use the SAME vocab as components: `setTemplateValue` writes the
+    // dev's chosen key into template state (e.g. a disclosure `openPanel`). The SDK hardcodes
+    // no UI concept. Everything else bubbles to the channel.
+    if (t === "setTemplateValue") {
+      const values = (typeof action === "object" ? action?.values : undefined) ?? [];
+      const patch: Record<string, unknown> = {};
+      for (const { key, value } of values) patch[key] = value;
+      store.mergeTemplateState(patch);
+      return;
+    }
+    onAction?.(action, data);
+  };
+
   const leaf = (pointer: string, extraData?: Record<string, unknown>) => {
     const { chatId, nodeId } = store.split(pointer);
-    return <StreamedUnoverseComponent key={pointer} client={client} store={store} chatId={chatId} nodeId={nodeId} onAction={onAction} theme={theme} extraData={extraData} />;
+    return <StreamedUnoverseComponent key={pointer} client={client} store={store} chatId={chatId} nodeId={nodeId} onAction={dispatch} theme={theme} extraData={extraData} />;
   };
 
   // ComponentSlot — filter the timeline to matching component pointers (KeyService).
   const resolveSlot = (node: UnoverseNode, key?: React.Key): ReactNode => {
     const pointers = selectPointers(store, node);
     if (pointers.length === 0) {
-      return node.fallback ? renderNode(node.fallback, {}, onAction, theme, key ?? "fallback") : null;
+      return node.fallback ? renderNode(node.fallback, {}, dispatch, theme, key ?? "fallback") : null;
     }
     return pointers.map((p) => leaf(p));
   };
@@ -135,7 +153,7 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
             const want = slotNode.select?.type?.map((t) => t.toLowerCase());
             if (want?.length) ptrs = ptrs.filter((p) => { const t = store.typeOf(p); return t != null && want.includes(t.toLowerCase()); });
             if (slotNode.select?.limit != null) ptrs = ptrs.slice(0, slotNode.select.limit);
-            if (ptrs.length === 0) return slotNode.fallback ? renderNode(slotNode.fallback, {}, onAction, theme, k ?? "fb") : null;
+            if (ptrs.length === 0) return slotNode.fallback ? renderNode(slotNode.fallback, {}, dispatch, theme, k ?? "fb") : null;
             // Pass the turn's streaming state into each component's scope so a streamed
             // component (e.g. AIResponse) can stop its own loading dots when complete.
             const streaming = turn.role === "assistant" && turn.streamingState === "streaming";
@@ -160,7 +178,7 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
                   // inactive → the definition hides it (legacy ChatHistoryItem null-returns).
                   active: turn.streamingState === "streaming" || turn.components.length > 0,
                 };
-          return renderNode(sub, data, onAction, theme, turn.id, turnSlot);
+          return renderNode(sub, data, dispatch, theme, turn.id, turnSlot);
         })}
       </div>
     );
@@ -179,11 +197,16 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   const rootData: Record<string, unknown> = {
     ...propDefaults(def.props),
     ...(props ?? {}),
+    // The active template's OWN state — one generic bag of the DEV's chosen keys (draft,
+    // openPanel, suggestions data, focusMode, voice call state, …). No per-feature
+    // projections; the engine knows no key names (UNOVERSE_STATE_MODEL §2).
+    ...store.getTemplateState(),
+    // Conversation-derived facts — READ OFF the timeline / lifecycle, never stored.
     isEmpty,
     hasMessages: !isEmpty,
-    // The shared composer draft — a controlled Input binds its value here; a send
-    // button submits it. Lives in the store (shared state), not locally in Input.
-    draft: store.getDraft(),
+    lifecycle: store.getLifecycle(),
+    isThinking: store.getLifecycle() === "thinking",
+    isStreaming: store.getLifecycle() === "thinking" || store.getLifecycle() === "streaming",
   };
 
   // Inject the served keyframes ONCE for this render root so any `style.animation` in a
@@ -193,7 +216,7 @@ export function StreamedUnoverseTemplate({ client, store, uri, onAction, theme: 
   // The SDK authors only `display: contents` (structure); every value comes from theme.root.
   // Isolated → theme.root on the shadow-root container (reliable cascade); else → display:contents.
   const keyframes = <style>{keyframesCss(theme)}</style>;
-  const tree = renderNode(def.root, rootData, onAction, theme, undefined, resolve);
+  const tree = renderNode(def.root, rootData, dispatch, theme, undefined, resolve);
   // A template is a SURFACE: its render-root fills the box the host gives it, so a root
   // that declares `height: "full"` (DATA) can resolve. This only fills when the host's box
   // is definite-height; when the host sizes to content the 100% resolves to content — so a

@@ -44,6 +44,9 @@ export function StreamedUnoverseComponent({ client, store, chatId, nodeId, onAct
     [store, chatId, nodeId, onAction],
   );
   if (!type) return <div>waiting for COMPONENT_INIT…</div>;
+  // No focus/displayState injection: a component's inline/focused look is its OWN state,
+  // written via the `setValue` action into this slice and read via `visibleWhen` — the SDK
+  // hardcodes no focus concept (UNOVERSE_STATE_MODEL §2). It's just another data field.
   const merged = extraData ? { ...data, ...extraData } : data;
   return <UnoverseComponent client={client} uri={`unoverse://components/${type}`} data={merged} onAction={handleAction} theme={theme} />;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@gravity-platform/unoverse-core",
-  "version": "0.0.2",
+  "version": "0.0.8",
   "description": "Unoverse core SDK — framework-agnostic MCP client + merge-state store (the channel brain)",
   "license": "MIT",
   "type": "module",

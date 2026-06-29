@@ -1,6 +1,6 @@
 {
   "name": "@gravity-platform/unoverse-react",
-  "version": "0.0.8",
+  "version": "0.0.15",
   "description": "Unoverse React renderer — neutral definition → React/DOM (web channel SDK)",
   "license": "MIT",
   "type": "module",
@@ -24,7 +24,7 @@
     "prepublishOnly": "node --test test/golden-rule.test.mjs test/dispatcher-only.test.mjs test/closed-set.test.mjs test/style-keys.test.mjs"
   },
   "dependencies": {
-    "@gravity-platform/unoverse-core": "^0.0.2",
+    "@gravity-platform/unoverse-core": "^0.0.8",
     "markdown-to-jsx": "^7.7.17"
   },
   "peerDependencies": {

@@ -26,8 +26,8 @@ const ALLOWED_STYLE_KEYS = new Set([
   // `container` — a container-query context (container-type) so descendants respond to THIS
   // element's width via hideBelow. Generic responsive vocab; value served. Pairs with hideBelow.
   "container",
-  // flexbox
-  "direction", "gap", "align", "justify",
+  // flexbox  (`wrap` = flex-wrap: content-width items sit side-by-side, wrap when no room)
+  "direction", "wrap", "gap", "align", "justify",
   // spacing
   "padding", "margin",
   // interaction affordance

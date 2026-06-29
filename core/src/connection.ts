@@ -9,7 +9,7 @@
  * The Unoverse MCP server is NOT involved here — it's the control plane
  * (definitions + theme). See UNOVERSE_MCP_TEMPLATE_PROTOCOL.md §5a.
  */
-import type { ComponentStore } from "./index";
+import type { ComponentStore } from "./store";
 
 // ---- Inbound server messages (the subset this rung handles) ----
 // Mirrors the legacy gravity-client contract (core/types.ts). nodeId is
@@ -44,11 +44,18 @@ export interface ServerWorkflowState {
 export interface ServerSessionReady {
   type: "SESSION_READY";
 }
+/** Generic write into TEMPLATE STATE — the template-state twin of COMPONENT_DATA. The
+ *  producer names the keys (e.g. the Suggestions node sends `{ faqs }`); core stays generic. */
+export interface ServerTemplateData {
+  type: "TEMPLATE_DATA";
+  data: Record<string, unknown>;
+}
 export type ServerMessage =
   | ServerComponentInit
   | ServerComponentData
   | ServerWorkflowState
   | ServerSessionReady
+  | ServerTemplateData
   | { type: string; [k: string]: unknown }; // forward-compat: unknown types ignored
 
 // Track first-seen components per `chatId:nodeId` so a repeated COMPONENT_INIT
@@ -56,8 +63,8 @@ export type ServerMessage =
 // Caller passes a Set it owns (per connection), so this stays pure.
 
 /**
- * Apply one inbound server message to the single store. Unknown / out-of-scope
- * message types (NODE_EXECUTION, SUGGESTIONS_UPDATE, audio) are ignored here.
+ * Apply one inbound server message to the single store. Out-of-scope message types
+ * (NODE_EXECUTION, audio) are ignored here; audio-state rides the WS lane, not this stream.
  *
  * @param seen  per-connection set of already-initialised `chatId:nodeId` keys.
  */
@@ -110,11 +117,26 @@ export function applyServerMessage(store: ComponentStore, msg: ServerMessage, se
       } else if (m.state === "WORKFLOW_COMPLETED" || m.state === "COMPLETE") {
         store.completeResponse(m.chatId);
       }
+      // Lifecycle machine — the global turn status (projected for visibleWhen).
+      if (m.state === "WORKFLOW_STARTED" || m.state === "THINKING") store.setLifecycle("thinking");
+      else if (m.state === "RESPONDING" || m.state === "WAITING") store.setLifecycle("streaming");
+      else if (m.state === "WORKFLOW_COMPLETED" || m.state === "COMPLETE") store.setLifecycle("complete");
+      else if (m.state === "ERROR" || m.state === "WORKFLOW_ERROR") store.setLifecycle("error");
+      return;
+    }
+    // No AUDIO_STATE case: voice is a NATIVE SERVICE on the WS audio lane (useVoiceService),
+    // NOT the structured MCP stream. Audio-state events never arrive here (UNOVERSE_SPEC §2e-1).
+    case "TEMPLATE_DATA": {
+      // Generic write into TEMPLATE STATE (the template-state twin of COMPONENT_DATA). The
+      // PRODUCER names the keys (the Suggestions node sends `{ faqs }`); the template picks
+      // them up. Core knows NO key names — fully generic (UNOVERSE_STATE_MODEL §2/§8).
+      const data = ((msg as { data?: Record<string, unknown> }).data ?? {}) as Record<string, unknown>;
+      store.mergeTemplateState(data);
       return;
     }
     default:
       // SESSION_READY is handled by the hook (it may send initialQuery); everything
-      // else (NODE_EXECUTION, SUGGESTIONS_UPDATE, audio) is out of scope this rung.
+      // else (NODE_EXECUTION, audio) is out of scope this rung.
       return;
   }
 }
